@@ -1,0 +1,54 @@
+<h1>Automated encryption and decryption in Git repositories</h1>
+
+<p>It is possible to use automated encryption and decryption in Git repositories
+because of the filter drivers that consist of a clean command and a smudge
+command. Where the clean "command is used to convert the contents of worktree
+file[s] upon checkin" in a similar way to how the smudge "command is fed the
+blob object from its standard input, and its standard output is used to update
+the worktree file." (The quotes are from gitattributes(5).)</p>
+
+<p>This example repository uses OpenSSL and symmetric-key encryption, but public
+key encryption, using GPG, should also work as stated <a href="http://stackoverflow.com/questions/1557183/is-it-possible-to-include-a-file-in-your-gitconfig/1558141#1558141">here</a>.</p>
+
+<h2>Working with encrypted files in a repository</h2>
+
+<p><strong>1)</strong> If one does not know the password to the encrypted files, the workflow is
+the same as always: work on the unencrypted files and commit the changes, etc.</p>
+
+<p><strong>2)</strong> This is not always the case, though. If you are one of the lucky ones and
+know the password and the cipher, and want to take part of the encrypted content
+(here ending with the file extension ".enc"), the following commands will do
+the job:</p>
+
+<pre><code>git clone git://example.com/repository.git
+cd repository
+git config filter.crypt.clean "openssl CIPHER -a -nosalt -pass pass:PASSWORD"
+git config filter.crypt.smudge "openssl CIPHER -a -nosalt -d -pass pass:PASSWORD"
+git config diff.crypt.command PATH_TO_crypt_diff
+echo '*.enc filter=crypt diff=crypt' &gt;&gt; .git/info/attributes
+</code></pre>
+
+<p>Then finally checkout the files that you want to decrypt:</p>
+
+<pre><code>git checkout -- FILE.enc FILE2.enc
+</code></pre>
+
+<p>and work on them as usual.</p>
+
+<p><strong>Notice</strong> that you must replace CIPHER with the actual cipher that is used, in
+this repository "example.enc" is encrypted using aes-256-cbc. The same is with
+the PASSWORD, where it is "writecode" in this case. Also PATH_TO_crypt_diff
+must be replaced with the path to the shell script crypt_diff, that is located
+in this repository, in order to be able to view plaintext diffs between the
+encrypted blob files and the plaintext worktree files.</p>
+
+<p><strong>3)</strong> To encrypt new files, all you have to do is to create them with the correct
+file extension (if not a sole wildcard is used instead of "*.enc" in
+.git/info/attributes) and later run <code>git add</code>. The same procedure is also used
+when initializing a new repository, except that <code>git init</code> should be run before
+the <code>git add</code> and that the two first steps are also skipped (<code>git clone</code> and
+<code>cd</code>) in the process above.</p>
+
+<h2>See also</h2>
+
+<p><a href="http://www.kernel.org/pub/software/scm/git/docs/gitattributes.html">gitattributes(5)</a>, <a href="http://www.openbsd.org/cgi-bin/man.cgi?query=openssl&amp;apropos=0&amp;sektion=1&amp;manpath=OpenBSD+Current&amp;arch=i386&amp;format=html">openssl(1)</a></p>
