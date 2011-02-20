@@ -2,51 +2,58 @@ Automated encryption and decryption in Git repositories
 =======================================================
 
 It is possible to use automated encryption and decryption in Git repositories
-as a result of the filter drivers that consist of a clean command and a smudge
+because of the filter drivers that consist of a clean command and a smudge
 command. Where the clean "command is used to convert the contents of worktree
 file[s] upon checkin" in a similar way to how the smudge "command is fed the
 blob object from its standard input, and its standard output is used to update
-the worktree file." (Quotes from GITATTRIBUTES(5).)
+the worktree file." (The quotes are from gitattributes(5).)
 
-This example repository uses OpenSSL and asymmetric key encryption, but public
-key encryption should also work as stated [here][1].
+This example repository uses OpenSSL and symmetric-key encryption, but public
+key encryption, using GPG, should also work as stated [here][1].
 
-Working in a repository containing encrypted files
---------------------------------------------------
+Working with encrypted files in a repository
+--------------------------------------------
 
-If not all the files are encrypted and one does not know the password to the
-encrypted files, the workflow is the same as always: work on the unencrypted
-files and commit the changes, etc.
+**1)** If one does not know the password to the encrypted files, the workflow is
+the same as always: work on the unencrypted files and commit the changes, etc.
 
-This is not always the case, though. If you are one of the lucky ones and know
-the password and the cipher, and want to take part of the encrypted content
+**2)** This is not always the case, though. If you are one of the lucky ones and
+know the password and the cipher, and want to take part of the encrypted content
 (here ending with the file extension ".enc"), the following commands will do
-your job:
+the job:
 
-  git clone git://example.com/repository.git
-  cd repository
-  git config filter.crypt.clean "openssl CIPHER -a -nosalt -pass pass:PASSWORD"
-  git config filter.crypt.smudge "openssl CIPHER -a -nosalt -d -pass pass:PASSWORD"
-  git config diff.crypt.command PATH_TO_crypt_diff
-  echo '*.enc filter=crypt' >> .git/info/attributes
-  echo '*.enc diff=crypt' >> .git/info/attributes
+	git clone git://example.com/repository.git
+	cd repository
+	git config filter.crypt.clean "openssl CIPHER -a -nosalt -pass pass:PASSWORD"
+	git config filter.crypt.smudge "openssl CIPHER -a -nosalt -d -pass pass:PASSWORD"
+	git config diff.crypt.command PATH_TO_crypt_diff
+	echo '*.enc filter=crypt diff=crypt' >> .git/info/attributes
 
 Then finally checkout the files that you want to decrypt:
-  
-  git checkout -- FILE.enc FILE2.enc
+
+	git checkout -- FILE.enc FILE2.enc
 
 and work on them as usual.
 
-Notice that you must replace CIPHER with the actual cipher that is used, in this
-repository "example.enc" is encrypted using aes-256-cbc. The same is with the
-PASSWORD, where it is "writecode" in this case. Also PATH_TO_crypt_diff must be
-replaced with the path to the shell script crypt_diff, that is located in this
-repository, in order to be able to view plaintext diffs of the encrypted files.
+**Notice** that you must replace CIPHER with the actual cipher that is used, in
+this repository "example.enc" is encrypted using aes-256-cbc. The same is with
+the PASSWORD, where it is "writecode" in this case. Also PATH\_TO\_crypt\_diff
+must be replaced with the path to the shell script crypt\_diff, that is located
+in this repository, in order to be able to view plaintext diffs between the
+encrypted blob files and the plaintext worktree files.
+
+**3)** To encrypt new files, all you have to do is to create them with the correct
+file extension (if not a sole wildcard is used instead of "*.enc" in
+.git/info/attributes) and later run `git add`. The same procedure is also used
+when initializing a new repository, except that `git init` should be run before
+the `git add` and that the two first steps are also skipped (`git clone` and
+`cd`) in the process above.
 
 See also
 --------
-gitattributes(5), openssl(1)
+
+[gitattributes(5)][2], [openssl(1)][3]
 
 [1]: http://stackoverflow.com/questions/1557183/is-it-possible-to-include-a-file-in-your-gitconfig/1558141#1558141
-
-vim:textwidth=80:spell:spelllang=en
+[2]: http://www.kernel.org/pub/software/scm/git/docs/gitattributes.html
+[3]: http://www.openbsd.org/cgi-bin/man.cgi?query=openssl&apropos=0&sektion=1&manpath=OpenBSD+Current&arch=i386&format=html
